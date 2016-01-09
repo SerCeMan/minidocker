@@ -100,16 +100,27 @@ int container_main(void *arg) {
         check_result(mount("/dev/mqueue", "dev/mqueue", NULL, MS_BIND, NULL), "mount /dev/mqueue");
     }
 
-    err = chroot(".");
-    if (err < 0) {
-        printf("CHROOT error %d\n %s", err, strerror(errno));
-        exit(EXIT_FAILURE);
-    }
+    string new_root_path = args->imagePath;
+    string old_root_path = args->imagePath + "/old";
+    check_mkdir(mkdir("./old", 0777), "mkdir /old");
+
+
+    check_result(mount(new_root_path.c_str(), new_root_path.c_str(), "bind", MS_BIND | MS_REC, NULL), "pivot");
+    check_result(pivot_root(new_root_path.c_str(), old_root_path.c_str()), "pivot");
+
+
+//    err = chroot(".");
+//    if (err < 0) {
+//        printf("CHROOT error %d\n %s", err, strerror(errno));
+//        exit(EXIT_FAILURE);
+//    }
     err = chdir("/bin");
     if (err < 0) {
         printf("CHDIR error %d\n %s", err, strerror(errno));
         exit(EXIT_FAILURE);
     }
+
+    check_result(umount2("/old", MNT_DETACH), "umount")
 
     setgroups(0, NULL);
 //    check_result(setresgid(0, 0, 0), "gid")

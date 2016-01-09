@@ -6,11 +6,14 @@
 #include <string.h>
 #include <grp.h>
 #include <sys/wait.h>
+#include <sys/mount.h>
+#include <sys/syscall.h>
 #include "common.h"
 
 using namespace std;
 
 int pipe_fd[2];
+#define pivot_root(new_root, put_old) syscall(SYS_pivot_root,new_root,put_old)
 
 int main(int argc, char *argv_MAIN[]) {
     using namespace std;
@@ -27,6 +30,20 @@ int main(int argc, char *argv_MAIN[]) {
     pipe(pipe_fd);
 
     const int gid = getgid(), uid = getuid();
+//
+    stringstream root_path;
+    root_path << "/proc/" << pid << "/" << "root";
+//    int err;
+//    string cmd;
+//    cmd = "cd " + root_path.str();
+//    check_result(system(cmd.c_str()), "cd");
+
+    int fd = open(root_path.str().c_str(), O_RDONLY);
+    int err = fchdir(fd);
+    if (err != 0) {
+        printf("CHDIR error %d\n %s", err, strerror(errno));
+        exit(EXIT_FAILURE);
+    }
 
     // cg enter
     string cgroup_base_dir = "/tmp/cgroup";
@@ -51,14 +68,6 @@ int main(int argc, char *argv_MAIN[]) {
         check_result(close(ns_fd), "close ns");;
     }
 
-    stringstream root_path;
-    root_path << "/proc/" << pid << "/" << "root";
-    int fd = open(root_path.str().c_str(), O_RDONLY);
-    int err = fchdir(fd);
-    if (err != 0) {
-        printf("CHDIR error %d\n %s", err, strerror(errno));
-        exit(EXIT_FAILURE);
-    }
 
 
 //    printf("Container: PID = %ld, eUID = %ld;  eGID = %ld, UID=%ld, GID=%ld\n", (long) getpid(),
