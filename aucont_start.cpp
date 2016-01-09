@@ -15,6 +15,7 @@
 #include <arpa/inet.h>
 #include <sys/syscall.h>
 #include <fcntl.h>
+#include <thread>
 #include "common.h"
 
 using namespace std;
@@ -214,7 +215,7 @@ int main(int argc, char *argv[]) {
     const string s1 = "echo 100000 >> " + cg_path + "/cpu.cfs_period_us";
     check_result(system(s1.c_str()), "echo period");
 
-    int newv = (100000 / 100) * args->cpu_perc;
+    int newv = (100000 / 100) * args->cpu_perc * thread::hardware_concurrency();
     const string s2 = "echo " + to_string(newv) + " >> " + cg_path + "/cpu.cfs_quota_us";
     check_result(system(s2.c_str()), "echo quota");
 
